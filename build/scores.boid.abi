@@ -1,0 +1,266 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "addgame",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "display_name",
+                    "type": "string"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                },
+                {
+                    "name": "stat_configs",
+                    "type": "stat_config[]"
+                }
+            ]
+        },
+        {
+            "name": "distribute",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "cycle",
+                    "type": "uint32"
+                },
+                {
+                    "name": "stat_name",
+                    "type": "name"
+                },
+                {
+                    "name": "total_reward",
+                    "type": "asset"
+                },
+                {
+                    "name": "destination_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "reward_percentages",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "getcycle",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "initcontract",
+            "base": "",
+            "fields": [
+                {
+                    "name": "start_time",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "cycle_length_sec",
+                    "type": "uint32"
+                },
+                {
+                    "name": "max_cycle_length_sec",
+                    "type": "uint32"
+                }
+            ]
+        },
+        {
+            "name": "pair_name_uint64",
+            "base": "",
+            "fields": [
+                {
+                    "name": "first",
+                    "type": "name"
+                },
+                {
+                    "name": "second",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "playerstats",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "player",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "recordgame",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "player",
+                    "type": "name"
+                },
+                {
+                    "name": "stats",
+                    "type": "pair_name_uint64[]"
+                }
+            ]
+        },
+        {
+            "name": "removegame",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "setcyclelen",
+            "base": "",
+            "fields": [
+                {
+                    "name": "new_length_sec",
+                    "type": "uint32"
+                }
+            ]
+        },
+        {
+            "name": "setdistconf",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "destination_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "memo_template",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "stat_config",
+            "base": "",
+            "fields": [
+                {
+                    "name": "stat_name",
+                    "type": "name"
+                },
+                {
+                    "name": "display_name",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "is_high_better",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "updategame",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "display_name",
+                    "type": "string"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                },
+                {
+                    "name": "stat_configs",
+                    "type": "stat_config[]"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "addgame",
+            "type": "addgame",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "distribute",
+            "type": "distribute",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "getcycle",
+            "type": "getcycle",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "initcontract",
+            "type": "initcontract",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "playerstats",
+            "type": "playerstats",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "recordgame",
+            "type": "recordgame",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "removegame",
+            "type": "removegame",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setcyclelen",
+            "type": "setcyclelen",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setdistconf",
+            "type": "setdistconf",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updategame",
+            "type": "updategame",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

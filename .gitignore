@@ -35,3 +35,4 @@ CMakeCache.txt
 .vscode/
 .cmake/
 CMakeFiles/
+.DS_Store

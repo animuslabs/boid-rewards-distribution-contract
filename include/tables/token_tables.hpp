@@ -3,11 +3,15 @@
 #include <eosio/asset.hpp>
 #include <eosio/singleton.hpp>
 
+#ifndef CONTRACT_NAME
+#define CONTRACT_NAME "gamerewards"
+#endif
+
 namespace gamerewards {
     using namespace eosio;
 
     // Global state singleton
-    struct [[eosio::table("global")]] global_state {
+    struct [[eosio::table("global"), eosio::contract(CONTRACT_NAME)]] global_state {
         bool initialized = false;
         time_point_sec cycle_start_time;
         time_point_sec last_cycle_update;  // Added for cycle management
@@ -45,12 +49,12 @@ namespace gamerewards {
     typedef eosio::multi_index<"global"_n, global_state> global_table;
 
     // Token configuration for reward distribution
-    struct [[eosio::table]] token_config {
+    struct [[eosio::table("tokenconfig"), eosio::contract(CONTRACT_NAME)]] token_config {
         name token_contract;
         symbol token_symbol;
         
         uint64_t primary_key() const { return token_symbol.raw(); }
     };
 
-    typedef multi_index<"tokenconfig"_n, token_config> token_config_table;
+    typedef eosio::multi_index<"tokenconfig"_n, token_config> token_config_table;
 }

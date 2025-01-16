@@ -59,14 +59,8 @@ public:
 
     // Record management actions
     [[eosio::action]]
-    void recordgame(name game_name, name player, std::map<name, uint64_t> stats) {
-        time_point_sec completion_time = time_point_sec(current_time_point());
+    void recordgame(name game_name, name player, std::map<name, uint64_t> stats, time_point_sec completion_time) {
         game_record_mgmt.recordgame(game_name, player, stats, completion_time);
-    }
-
-    [[eosio::action]]
-    void playerstats(name game_name, name player) {
-        game_record_mgmt.playerstats(game_name, player);
     }
 
     // Reward management actions
@@ -86,10 +80,5 @@ public:
     [[eosio::action]]
     void setcyclelen(uint32_t new_length_sec) {
         cycle_mgmt.setcyclelen(new_length_sec);
-    }
-
-    [[eosio::action]]
-    void getcycle() {
-        cycle_mgmt.getcycle();
     }
 };

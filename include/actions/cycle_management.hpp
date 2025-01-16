@@ -68,23 +68,5 @@ namespace gamerewards {
                 std::make_tuple(new_length_sec, state.current_cycle)
             ).send();
         }
-
-        [[eosio::action]]
-        void getcycle() {
-            check(globals.exists(), "Contract not initialized");
-            auto state = globals.get();
-            check(state.initialized, "Cycle not initialized");
-
-            time_point_sec current_time = time_point_sec(current_time_point());
-            uint32_t elapsed = current_time.sec_since_epoch() - state.last_cycle_update.sec_since_epoch();
-            uint32_t remaining = state.cycle_length_sec - (elapsed % state.cycle_length_sec);
-            bool at_boundary = is_cycle_boundary(current_time, state);
-
-            print("Current cycle: ", state.current_cycle);
-            print("\nTime until next cycle: ", remaining, " seconds");
-            print("\nAt cycle boundary: ", at_boundary ? "yes" : "no");
-            print("\nCycle length: ", state.cycle_length_sec, " seconds");
-            print("\nMax cycle length: ", state.max_cycle_length_sec, " seconds");
-        }
     };
 }

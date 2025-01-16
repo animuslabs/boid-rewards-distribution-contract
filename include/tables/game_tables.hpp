@@ -3,6 +3,10 @@
 #include <eosio/asset.hpp>
 #include <eosio/time.hpp>
 
+#ifndef CONTRACT_NAME
+#define CONTRACT_NAME "gamerewards"
+#endif
+
 namespace gamerewards {
     using namespace eosio;
     using std::string;
@@ -16,7 +20,7 @@ namespace gamerewards {
         bool is_high_better;
     };
 
-    struct [[eosio::table]] gameconfig {
+    struct [[eosio::table, eosio::contract(CONTRACT_NAME)]] gameconfig {
         name game_name;
         string display_name;
         string metadata;
@@ -26,7 +30,7 @@ namespace gamerewards {
         uint64_t primary_key() const { return game_name.value; }
     };
 
-    struct [[eosio::table]] playerstats {
+    struct [[eosio::table, eosio::contract(CONTRACT_NAME)]] playerstats {
         uint64_t id;
         name boid_id;
         name game_name;
@@ -50,7 +54,7 @@ namespace gamerewards {
         }
     };
 
-    struct [[eosio::table]] statshistory {
+    struct [[eosio::table, eosio::contract(CONTRACT_NAME)]] statshistory {
         uint64_t id;
         name boid_id;
         name game_name;
@@ -73,7 +77,7 @@ namespace gamerewards {
         }
     };
 
-    struct [[eosio::table]] reward_distribution_config {
+    struct [[eosio::table, eosio::contract(CONTRACT_NAME)]] reward_distribution_config {
         name game_name;
         uint32_t min_players;
         uint32_t max_players;
@@ -84,7 +88,7 @@ namespace gamerewards {
         uint64_t primary_key() const { return game_name.value; }
     };
 
-    struct [[eosio::table]] rewardconfig {
+    struct [[eosio::table, eosio::contract(CONTRACT_NAME)]] rewardconfig {
         name game_name;
         asset total_reward_pool;
         uint32_t start_cycle;
@@ -95,7 +99,7 @@ namespace gamerewards {
         uint64_t primary_key() const { return game_name.value; }
     };
 
-    struct [[eosio::table]] cycledistribution {
+    struct [[eosio::table, eosio::contract(CONTRACT_NAME)]] cycledistribution {
         uint64_t id;
         name game_name;
         uint32_t cycle_number;

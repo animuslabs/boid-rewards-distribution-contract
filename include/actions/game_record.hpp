@@ -40,7 +40,7 @@ namespace gamerewards {
         [[eosio::action]]
         void recordgame(name game_name, name player, std::map<name, uint64_t> stats, time_point_sec completion_time) {
             require_auth(_self);
-
+    
             // Get game config and validate
             gameconfig_table configs(_self, _self.value);
             auto config = configs.get(game_name.value, "Game not found");
@@ -84,15 +84,6 @@ namespace gamerewards {
                 "statsrecord"_n,
                 std::make_tuple(game_name, player, stats, target_cycle, completion_time)
             ).send();
-        }
-
-        [[eosio::action]]
-        void playerstats(name game_name, name player) {
-            playerstats_table player_stats(_self, _self.value);
-            auto by_player_game = player_stats.get_index<"byplayergame"_n>();
-            uint128_t composite_key = ((uint128_t)player.value << 64) | game_name.value;
-            auto player_game_it = by_player_game.find(composite_key);
-            check(player_game_it != by_player_game.end(), "No stats found for player in this game");
         }
     };
 }

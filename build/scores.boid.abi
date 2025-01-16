@@ -26,6 +26,36 @@
             ]
         },
         {
+            "name": "cycledistribution",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "cycle_number",
+                    "type": "uint32"
+                },
+                {
+                    "name": "stat_name",
+                    "type": "name"
+                },
+                {
+                    "name": "total_reward",
+                    "type": "asset"
+                },
+                {
+                    "name": "distribution_time",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
             "name": "distribute",
             "base": "",
             "fields": [
@@ -56,9 +86,94 @@
             ]
         },
         {
-            "name": "getcycle",
+            "name": "game_history",
             "base": "",
-            "fields": []
+            "fields": [
+                {
+                    "name": "history_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "boid_id",
+                    "type": "name"
+                },
+                {
+                    "name": "record_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "score",
+                    "type": "uint64"
+                },
+                {
+                    "name": "reward",
+                    "type": "asset"
+                },
+                {
+                    "name": "timestamp",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "gameconfig",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "display_name",
+                    "type": "string"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                },
+                {
+                    "name": "active",
+                    "type": "bool"
+                },
+                {
+                    "name": "stat_configs",
+                    "type": "stat_config[]"
+                }
+            ]
+        },
+        {
+            "name": "global_state",
+            "base": "",
+            "fields": [
+                {
+                    "name": "initialized",
+                    "type": "bool"
+                },
+                {
+                    "name": "cycle_start_time",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "last_cycle_update",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "last_consolidated_cycle",
+                    "type": "uint32"
+                },
+                {
+                    "name": "current_cycle",
+                    "type": "uint32"
+                },
+                {
+                    "name": "cycle_length_sec",
+                    "type": "uint32"
+                },
+                {
+                    "name": "max_cycle_length_sec",
+                    "type": "uint32"
+                }
+            ]
         },
         {
             "name": "initcontract",
@@ -97,12 +212,36 @@
             "base": "",
             "fields": [
                 {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "boid_id",
+                    "type": "name"
+                },
+                {
                     "name": "game_name",
                     "type": "name"
                 },
                 {
-                    "name": "player",
-                    "type": "name"
+                    "name": "stats",
+                    "type": "pair_name_uint64[]"
+                },
+                {
+                    "name": "cycle_number",
+                    "type": "uint32"
+                },
+                {
+                    "name": "rewards_distributed",
+                    "type": "bool"
+                },
+                {
+                    "name": "game_completion_time",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "last_updated",
+                    "type": "time_point_sec"
                 }
             ]
         },
@@ -121,6 +260,10 @@
                 {
                     "name": "stats",
                     "type": "pair_name_uint64[]"
+                },
+                {
+                    "name": "completion_time",
+                    "type": "time_point_sec"
                 }
             ]
         },
@@ -131,6 +274,66 @@
                 {
                     "name": "game_name",
                     "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "reward_distribution_config",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "min_players",
+                    "type": "uint32"
+                },
+                {
+                    "name": "max_players",
+                    "type": "uint32"
+                },
+                {
+                    "name": "cycle_length_sec",
+                    "type": "uint32"
+                },
+                {
+                    "name": "destination_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "memo_template",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "rewardconfig",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "total_reward_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "start_cycle",
+                    "type": "uint32"
+                },
+                {
+                    "name": "end_cycle",
+                    "type": "uint32"
+                },
+                {
+                    "name": "last_distributed_cycle",
+                    "type": "uint32"
+                },
+                {
+                    "name": "reward_percentages",
+                    "type": "bytes"
                 }
             ]
         },
@@ -185,6 +388,50 @@
             ]
         },
         {
+            "name": "statshistory",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "boid_id",
+                    "type": "name"
+                },
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "stats",
+                    "type": "pair_name_uint64[]"
+                },
+                {
+                    "name": "cycle_number",
+                    "type": "uint32"
+                },
+                {
+                    "name": "timestamp",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "token_config",
+            "base": "",
+            "fields": [
+                {
+                    "name": "token_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "token_symbol",
+                    "type": "symbol"
+                }
+            ]
+        },
+        {
             "name": "updategame",
             "base": "",
             "fields": [
@@ -205,6 +452,36 @@
                     "type": "stat_config[]"
                 }
             ]
+        },
+        {
+            "name": "user_stat",
+            "base": "",
+            "fields": [
+                {
+                    "name": "boid_id",
+                    "type": "name"
+                },
+                {
+                    "name": "games_played",
+                    "type": "uint32"
+                },
+                {
+                    "name": "games_won",
+                    "type": "uint32"
+                },
+                {
+                    "name": "total_rewards",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_score",
+                    "type": "uint64"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                }
+            ]
         }
     ],
     "actions": [
@@ -219,18 +496,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "getcycle",
-            "type": "getcycle",
-            "ricardian_contract": ""
-        },
-        {
             "name": "initcontract",
             "type": "initcontract",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "playerstats",
-            "type": "playerstats",
             "ricardian_contract": ""
         },
         {
@@ -259,7 +526,78 @@
             "ricardian_contract": ""
         }
     ],
-    "tables": [],
+    "tables": [
+        {
+            "name": "cycledist",
+            "type": "cycledistribution",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "gameconfigs",
+            "type": "gameconfig",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "gamehistory",
+            "type": "game_history",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "global",
+            "type": "global_state",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "playerstats",
+            "type": "playerstats",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "rewardconfig",
+            "type": "rewardconfig",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "rewarddist",
+            "type": "reward_distribution_config",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "statshistory",
+            "type": "statshistory",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "tokenconfig",
+            "type": "token_config",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "userstat",
+            "type": "user_stat",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
     "ricardian_clauses": [],
     "variants": [],
     "action_results": []

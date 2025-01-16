@@ -67,18 +67,29 @@ Purpose: Defines game configurations and their associated statistics
 ```cpp
 struct playerstats {
     uint64_t id;
-    name player;
+    name boid_id;           // Player account
     name game_name;
-    map<name, uint64_t> stats;
-    uint64_t last_updated; // Time in seconds since epoch
+    map<name, uint64_t> stats;  // Combined stats map
+    uint32_t cycle_number;      // Determined by game completion time
+    bool rewards_distributed = false;
+    time_point_sec game_completion_time;  // When the game was completed
+    time_point_sec last_updated;
 
     uint64_t primary_key() const { return id; }
-    uint128_t by_player_game() const { return combine_names(player, game_name); }
     uint64_t by_game() const { return game_name.value; }
-    uint64_t by_player() const { return player.value; }
+    uint64_t by_player() const { return boid_id.value; }
+    uint128_t by_player_game() const {
+        return ((uint128_t)boid_id.value << 64) | game_name.value;
+    }
+    uint128_t by_game_cycle() const {
+        return ((uint128_t)game_name.value << 64) | cycle_number;
+    }
+    uint128_t by_completion() const {
+        return ((uint128_t)game_completion_time.sec_since_epoch() << 64) | id;
+    }
 }
 ```
-Purpose: Tracks current player statistics and their latest updates
+Purpose: Tracks current player statistics and their latest updates. This table is used by the recordgame action to store player stats and by the distribute action to handle rewards.
 
 ### 4. Stats History
 ```cpp
@@ -149,10 +160,11 @@ To get started with the Boid Game Rewards smart contract, follow these steps:
 3. **Record Game Stats**:
    - Record player stats for completed games.
    ```bash
+   # Record game stats with completion time
    cleos push action contract.name recordgame '[
        "game1",                # Game name
-       "player.name",          # Player account
-       {                        # Stats
+       "boid.id",             # Player account
+       {                      # Stats
            "kills": 10,
            "deaths": 5
        },
@@ -179,7 +191,7 @@ To get started with the Boid Game Rewards smart contract, follow these steps:
 The *initcontract* action initializes or resets the contract state:
 - Authorization: Requires the contract's authority to execute.
 - Validation: Ensures valid cycle lengths and start time.
-- Cleanup: Clears all existing tables (global state, game configs, player stats, stats history, reward configs).
+- Cleanup: Clears all existing tables (global state, game configs, game records, stats history, reward configs).
 - State Setup: Initializes the contract with cycle 1, specified start time and cycle lengths.
 - Event Emission: Notifies external systems about the initialization.
 
@@ -230,19 +242,19 @@ The *recordgame* action:
 - Game Configuration Validation: Checks that the game exists and is active.
 - Stat Validation: Ensures that the provided stats match the game's configuration.
 - Cycle Determination:
- *Retrieves the current global state.
- *Validates the completion time against the current time and the contract's initialization time.
- *Determines the appropriate cycle for the game record using the determine_cycle function.
+ * Uses provided completion time to determine the cycle
+ * Validates the completion time against the contract's initialization time
+ * Determines the appropriate cycle for the game record using the determine_cycle function
 - Reward Distribution Check: Ensures that rewards have not already been distributed for the determined cycle.
-- Record Storage: Saves the game record to the statshistory_table with the determined cycle number.
+- Record Storage: Saves the game record to both playerstats and statshistory tables.
 - Event Emission: Sends an action to notify that stats have been recorded.
 
 ```bash
-# Record game stats for a player
+# Record game stats with completion time
 cleos push action contract.name recordgame '[
     "game1",                # Game name
-    "player.name",          # Player account
-    {                        # Stats
+    "boid.id",             # Player account
+    {                      # Stats
         "kills": 10,
         "deaths": 5
     },
@@ -299,7 +311,7 @@ The *setcyclelen* action allows for the adjustment of the cycle length in second
 cleos push action contract.name setcyclelen '[
     604800                  # New cycle length in seconds (7 days)
 ]' -p contract.name
-```
+  ```
 
 ### 6. Token Management
 The *settoken* action configures the reward token for the contract:
@@ -356,23 +368,24 @@ The contract provides tools for efficient data management:
 1. Player Stats:
    - By player-game: Find all stats for a player in a specific game
      ```bash
-     # Get all stats for player1 in game1
+     # Get stats for player1 in game1
      cleos get table contract.name contract.name playerstats \
          --index 2 \
-         --key-type uint128 \
-         --lower "$(echo $(($(echo -n 'player1' | xxd -p -u) << 64 | $(echo -n 'game1' | xxd -p -u))))"
+         --key-type i128 \
+         --lower "$(echo $((player_account << 64 | game_name)))" \
+         --upper "$(echo $((player_account << 64 | game_name)))"
      ```
    
-   - By game: List all stats for a game
+   - By game: List all player stats for a game
      ```bash
-     # Get all stats for game1
+     # Get all player stats for game1
      cleos get table contract.name contract.name playerstats \
          --index 3 \
          --key-type name \
          --lower game1 --upper game1
      ```
    
-   - By player: List all stats for a player
+   - By player: List all stats for a player across all games
      ```bash
      # Get all stats for player1
      cleos get table contract.name contract.name playerstats \
@@ -381,23 +394,24 @@ The contract provides tools for efficient data management:
          --lower player1 --upper player1
      ```
    
-   - By game-cycle: Get stats for a specific game cycle
+   - By game-cycle: Get all player stats for a specific game cycle
      ```bash
-     # Get all stats for game1 in cycle 1
+     # Get all player stats for game1 in cycle 1
      cleos get table contract.name contract.name playerstats \
          --index 5 \
-         --key-type uint128 \
-         --lower "$(echo $(($(echo -n 'game1' | xxd -p-u) << 64 | 1)))"
+         --key-type i128 \
+         --lower "$(echo $((game_name << 64 | 1)))" \
+         --upper "$(echo $((game_name << 64 | 1)))"
      ```
    
-   - By completion: Time-based queries
+   - By completion time: Time-based queries
      ```bash
-     # Get stats between two timestamps
+     # Get player stats between two timestamps
      cleos get table contract.name contract.name playerstats \
          --index 6 \
-         --key-type uint128 \
-         --lower "$(echo $(($(date -d '2025-01-16T14:00:00' +%s) << 64)))" \
-         --upper "$(echo $(($(date -d '2025-01-16T15:00:00' +%s) << 64)))"
+         --key-type i128 \
+         --lower "$(echo $((start_time << 64)))" \
+         --upper "$(echo $((end_time << 64)))"
      ```
 
 2. Stats History:
@@ -407,7 +421,7 @@ The contract provides tools for efficient data management:
      cleos get table contract.name contract.name statshistory \
          --index 2 \
          --key-type uint128 \
-         --lower "$(echo $(($(echo -n 'game1' | xxd -p-u) << 64)))"
+         --lower "$(echo $((game_name << 64)))"
      ```
    
    - By player stat: Historical stats for a player
@@ -416,7 +430,7 @@ The contract provides tools for efficient data management:
      cleos get table contract.name contract.name statshistory \
          --index 3 \
          --key-type uint128 \
-         --lower "$(echo $(($(echo -n 'player1' | xxd -p-u) << 64)))"
+         --lower "$(echo $((player_account << 64)))"
      ```
    
    - By cycle: All stats from a specific cycle
@@ -441,3 +455,82 @@ Note: These queries use the following index numbers:
   - 2: bygamestat
   - 3: byplayerstat
   - 4: bycycle
+
+### Querying Game Records Directly from Table
+
+To query a player's records for a specific game:
+```bash
+# Using byplayergame index (index 2)
+cleos get table contract.name contract.name gamerecord \
+    --index 2 \
+    --key-type i128 \
+    --lower "$(echo $((player_account << 64 | game_name)))" \
+    --upper "$(echo $((player_account << 64 | game_name)))"
+```
+
+For example, if player account is "player1" and game is "game1":
+```bash
+# Convert names to uint64
+player=$(echo "obase=10; ibase=16; $(echo -n "player1" | xxd -p -u | while read -n 16 x; do echo ${x:14:2}${x:12:2}${x:10:2}${x:8:2}${x:6:2}${x:4:2}${x:2:2}${x:0:2}; done)" | bc)
+game=$(echo "obase=10; ibase=16; $(echo -n "game1" | xxd -p -u | while read -n 16 x; do echo ${x:14:2}${x:12:2}${x:10:2}${x:8:2}${x:6:2}${x:4:2}${x:2:2}${x:0:2}; done)" | bc)
+
+# Query the table
+cleos get table contract.name contract.name gamerecord \
+    --index 2 \
+    --key-type i128 \
+    --lower "$(echo $((player << 64 | game)))" \
+    --upper "$(echo $((player << 64 | game)))"
+```
+
+This will return the player's records including:
+- Current records for each configured stat
+- Current cycle number
+- Whether rewards have been distributed
+- Game completion time
+- Last update time
+
+### Querying Cycle Information
+
+To get cycle information, query the global table:
+```bash
+cleos get table contract.name contract.name global
+```
+
+This will return something like:
+```json
+{
+  "rows": [{
+    "initialized": true,
+    "cycle_start_time": "2024-01-16T00:00:00",
+    "last_cycle_update": "2024-01-16T12:00:00",
+    "last_consolidated_cycle": 5,
+    "current_cycle": 6,
+    "cycle_length_sec": 604800,
+    "max_cycle_length_sec": 2592000
+  }]
+}
+```
+
+To calculate time remaining until next cycle:
+1. Get seconds elapsed since `last_cycle_update`: current_time - last_cycle_update
+2. Get seconds into current cycle: elapsed % cycle_length_sec
+3. Time remaining = cycle_length_sec - seconds_into_cycle
+
+To check if at cycle boundary:
+1. Get seconds elapsed since `last_cycle_update`
+2. If elapsed >= cycle_length_sec, then we're at a cycle boundary
+
+### 6. Token Management
+The *settoken* action configures the reward token for the contract:
+- Authorization: Requires the contract's authority to execute.
+- Token Setup: Specifies the token contract account and symbol for rewards.
+- State Management: Creates or updates the token configuration in the contract state.
+- Flexibility: Allows changing the reward token if needed.
+
+```bash
+# Set token contract and symbol
+cleos push action contract.name settoken '[
+    "token.contract",      # Token contract
+    "4,TOKEN"              # Token symbol
+]' -p contract.name
+```

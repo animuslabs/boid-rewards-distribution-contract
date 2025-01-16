@@ -22,7 +22,7 @@ namespace gamerewards {
             };
 
             action(
-                permission_level{from, "active"_n},
+                permission_level{from, from},
                 contract,
                 "transfer"_n,
                 transfer_data

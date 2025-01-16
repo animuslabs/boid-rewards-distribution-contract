@@ -26,6 +26,30 @@
             ]
         },
         {
+            "name": "clearrecord",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "configgame",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "cycledistribution",
             "base": "",
             "fields": [
@@ -64,7 +88,7 @@
                     "type": "name"
                 },
                 {
-                    "name": "cycle",
+                    "name": "cycle_number",
                     "type": "uint32"
                 },
                 {
@@ -76,12 +100,34 @@
                     "type": "asset"
                 },
                 {
-                    "name": "destination_contract",
+                    "name": "token_contract",
                     "type": "name"
                 },
                 {
                     "name": "reward_percentages",
                     "type": "bytes"
+                },
+                {
+                    "name": "normalize_percentages",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "findmissing",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "start_cycle",
+                    "type": "uint32"
+                },
+                {
+                    "name": "end_cycle",
+                    "type": "uint32"
                 }
             ]
         },
@@ -116,6 +162,28 @@
             ]
         },
         {
+            "name": "game_record_data",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "player",
+                    "type": "name"
+                },
+                {
+                    "name": "stats",
+                    "type": "pair_name_uint64[]"
+                },
+                {
+                    "name": "completion_time",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
             "name": "gameconfig",
             "base": "",
             "fields": [
@@ -138,6 +206,26 @@
                 {
                     "name": "stat_configs",
                     "type": "stat_config[]"
+                }
+            ]
+        },
+        {
+            "name": "getconfig",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "getrecord",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
                 }
             ]
         },
@@ -250,20 +338,8 @@
             "base": "",
             "fields": [
                 {
-                    "name": "game_name",
-                    "type": "name"
-                },
-                {
-                    "name": "player",
-                    "type": "name"
-                },
-                {
-                    "name": "stats",
-                    "type": "pair_name_uint64[]"
-                },
-                {
-                    "name": "completion_time",
-                    "type": "time_point_sec"
+                    "name": "records",
+                    "type": "game_record_data[]"
                 }
             ]
         },
@@ -432,6 +508,28 @@
             ]
         },
         {
+            "name": "trimhistory",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_name",
+                    "type": "name"
+                },
+                {
+                    "name": "start_time",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "end_time",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "max_deletions",
+                    "type": "uint32"
+                }
+            ]
+        },
+        {
             "name": "updategame",
             "base": "",
             "fields": [
@@ -491,8 +589,33 @@
             "ricardian_contract": ""
         },
         {
+            "name": "clearrecord",
+            "type": "clearrecord",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "configgame",
+            "type": "configgame",
+            "ricardian_contract": ""
+        },
+        {
             "name": "distribute",
             "type": "distribute",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "findmissing",
+            "type": "findmissing",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "getconfig",
+            "type": "getconfig",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "getrecord",
+            "type": "getrecord",
             "ricardian_contract": ""
         },
         {
@@ -518,6 +641,11 @@
         {
             "name": "setdistconf",
             "type": "setdistconf",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "trimhistory",
+            "type": "trimhistory",
             "ricardian_contract": ""
         },
         {

@@ -59,8 +59,8 @@ public:
 
     // Record management actions
     [[eosio::action]]
-    void recordgame(name game_name, name player, std::map<name, uint64_t> stats, time_point_sec completion_time) {
-        game_record_mgmt.recordgame(game_name, player, stats, completion_time);
+    void recordgame(vector<gamerewards::game_record_data> records) {
+        game_record_mgmt.recordgame(records);
     }
 
     // Reward management actions

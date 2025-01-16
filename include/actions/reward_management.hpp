@@ -5,10 +5,14 @@
 #include <algorithm>
 #include <numeric>
 
+#ifndef CONTRACT_NAME
+#define CONTRACT_NAME "gamerewards"
+#endif
+
 namespace gamerewards {
     using namespace eosio;
 
-    class [[eosio::contract("gamerewards")]] reward_management : public contract {
+    class [[eosio::contract(CONTRACT_NAME)]] reward_management : public contract {
     protected:
         name contract_account;
         static constexpr uint8_t MAX_REWARD_TIERS = 10;
@@ -75,27 +79,36 @@ namespace gamerewards {
             require_auth(contract_account);
 
             // Validate input parameters
-            check(reward_percentages.size() <= MAX_REWARD_TIERS, "Too many reward tiers");
+            std::string error_msg = "Too many reward tiers. Maximum allowed: " + std::to_string(MAX_REWARD_TIERS);
+            check(reward_percentages.size() <= MAX_REWARD_TIERS, error_msg.c_str());
             check(!reward_percentages.empty(), "Must specify at least one reward tier");
-            check(total_reward.amount > 0, "Total reward must be positive");
+            
+            error_msg = "Total reward amount must be positive. Got: " + total_reward.to_string();
+            check(total_reward.amount > 0, error_msg.c_str());
 
             // Validate percentages
             uint16_t total_percentage = 0;
             for (uint8_t percentage : reward_percentages) {
-                check(percentage > 0, "Reward percentage must be greater than 0");
+                error_msg = "Each reward percentage must be at least " + std::to_string(MIN_REWARD_PERCENTAGE) + "%";
+                check(percentage >= MIN_REWARD_PERCENTAGE, error_msg.c_str());
                 total_percentage += percentage;
             }
-            check(total_percentage == 100, "Reward percentages must sum to 100");
+            error_msg = "Reward percentages must sum to " + std::to_string(MAX_TOTAL_PERCENTAGE) + "%. Got: " + std::to_string(total_percentage) + "%";
+            check(total_percentage == MAX_TOTAL_PERCENTAGE, error_msg.c_str());
 
             // Get game config
             auto game_config = configs.find(game_name.value);
-            check(game_config != configs.end(), "Game not found");
-            check(game_config->active, "Game is not active");
+            error_msg = "Game '" + game_name.to_string() + "' not found";
+            check(game_config != configs.end(), error_msg.c_str());
+            
+            error_msg = "Game '" + game_name.to_string() + "' is not active";
+            check(game_config->active, error_msg.c_str());
 
             // Verify stat exists and is configured for rewards
             auto stat_it = std::find_if(game_config->stat_configs.begin(), game_config->stat_configs.end(),
                 [&](const auto& cfg) { return cfg.stat_name == stat_name; });
-            check(stat_it != game_config->stat_configs.end(), "Stat not configured for game");
+            error_msg = "Stat '" + stat_name.to_string() + "' not configured for game '" + game_name.to_string() + "'";
+            check(stat_it != game_config->stat_configs.end(), error_msg.c_str());
             bool is_high_better = stat_it->is_high_better;
 
             // Get all records from history for this cycle
@@ -242,7 +255,7 @@ namespace gamerewards {
                     }
 
                     action(
-                        permission_level{contract_account, "active"_n},
+                        permission_level{contract_account, contract_account},
                         dist_config.destination_contract,
                         "transfer"_n,
                         std::make_tuple(contract_account, player_id, player_reward, memo)
@@ -250,13 +263,15 @@ namespace gamerewards {
                 }
             }
 
-            // Emit distribution event
-            action(
-                permission_level{contract_account, "active"_n},
-                contract_account,
-                "rewarddist"_n,
-                std::make_tuple(game_name, cycle_number, stat_name, total_reward, rankings)
-            ).send();
+            // Record distribution in history
+            cycle_dist.emplace(contract_account, [&](auto& row) {
+                row.id = cycle_dist.available_primary_key();
+                row.game_name = game_name;
+                row.cycle_number = cycle_number;
+                row.stat_name = stat_name;
+                row.total_reward = total_reward;
+                row.distribution_time = time_point_sec(current_time_point());
+            });
         }
 
         [[eosio::action]]
@@ -290,14 +305,6 @@ namespace gamerewards {
                     missing_cycles.push_back(cycle);
                 }
             }
-
-            // Emit event with missing cycles
-            action(
-                permission_level{contract_account, "active"_n},
-                contract_account,
-                "missingcycle"_n,
-                std::make_tuple(game_name, missing_cycles)
-            ).send();
         }
 
         [[eosio::action]]
@@ -360,14 +367,6 @@ namespace gamerewards {
                     history_it++;
                 }
             }
-
-            // Emit event with deletion results
-            action(
-                permission_level{contract_account, "active"_n},
-                contract_account,
-                "historytrim"_n,
-                std::make_tuple(game_name, start_time, end_time, deleted_count)
-            ).send();
         }
 
     private:
@@ -391,7 +390,7 @@ namespace gamerewards {
 
             // Send reward
             action(
-                permission_level{contract_account, "active"_n},
+                permission_level{contract_account, contract_account},
                 token_contract,
                 "transfer"_n,
                 std::make_tuple(

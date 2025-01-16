@@ -113,15 +113,15 @@ To get started with the Boid Game Rewards smart contract, follow these steps:
    - Record player stats for completed games.
    ```bash
    # Record game stats with completion time
-   cleos push action contract.name recordgame '[
-       "game1",                # Game name
-       "boid.id",             # Player account
-       {                      # Stats
+   cleos push action contract.name recordgame '[[{
+       "game_name": "game1",
+       "player": "boid.id",
+       "stats": {
            "kills": 10,
            "deaths": 5
        },
-       1705407559  # Completion time in seconds since epoch
-   ]' -p contract.name
+       "completion_time": 1705407559
+   }]]' -p contract.name
    ```
 
 4. **Distribute Rewards**:
@@ -145,7 +145,6 @@ The *initcontract* action initializes or resets the contract state:
 - Validation: Ensures valid cycle lengths and start time.
 - Cleanup: Clears all existing tables (global state, game configs, game records, stats history, reward configs).
 - State Setup: Initializes the contract with cycle 1, specified start time and cycle lengths.
-- Event Emission: Notifies external systems about the initialization.
 
 ```bash
 cleos push action contract.name initcontract '[
@@ -191,27 +190,37 @@ cleos push action contract.name removegame '[
 ### 3. Recording Game Stats
 The *recordgame* action:  
 - Authorization: Ensures the action is authorized by the contract itself.
-- Game Configuration Validation: Checks that the game exists and is active.
-- Stat Validation: Ensures that the provided stats match the game's configuration.
-- Cycle Determination:
- * Uses provided completion time to determine the cycle
- * Validates the completion time against the contract's initialization time
- * Determines the appropriate cycle for the game record using the determine_cycle function
-- Reward Distribution Check: Ensures that rewards have not already been distributed for the determined cycle.
-- Record Storage: Saves the game record to both playerstats and statshistory tables.
-- Event Emission: Sends an action to notify that stats have been recorded.
+- Input Validation:
+  * Accepts an array of game records (up to 100 records per transaction)
+  * Each record contains: game name, player, stats map, and completion time
+- For each record:
+  * Game Configuration Validation: Checks that the game exists and is active
+  * Stat Validation: Ensures that the provided stats match the game's configuration
+  * Cycle Determination: Uses completion time to determine the appropriate cycle
+  * Reward Distribution Check: Ensures rewards haven't been distributed for the cycle
+  * Record Storage: Updates both playerstats and statshistory tables
 
 ```bash
-# Record game stats with completion time
-cleos push action contract.name recordgame '[
-    "game1",                # Game name
-    "boid.id",             # Player account
-    {                      # Stats
-        "kills": 10,
-        "deaths": 5
+# Record multiple game stats in a single transaction
+cleos push action contract.name recordgame '[[
+    {
+        "game_name": "game1",
+        "player": "player1",
+        "stats": {
+            "kills": 10,
+            "deaths": 5
+        },
+        "completion_time": 1705407559
     },
-    1705407559  # Completion time in seconds since epoch
-]' -p contract.name
+    {
+        "game_name": "game2",
+        "player": "player2",
+        "stats": {
+            "score": 1000
+        },
+        "completion_time": 1705407600
+    }
+]]' -p contract.name
 ```
 
 ### 4. Reward Distribution and Management
@@ -221,7 +230,7 @@ The *distribute* action:
 - Stats Processing: Aggregates and ranks player stats for the cycle.
 - Reward Calculation: Computes rewards based on configured percentages.
 - Token Transfer: Distributes reward tokens to qualifying players.
-- Event Emission: Notifies external systems about the reward distribution.
+- Distribution Recording: Records the distribution in cycle_dist table.
 
 ```bash
 # Distribute rewards for a cycle
@@ -256,14 +265,13 @@ The *setcyclelen* action allows for the adjustment of the cycle length in second
 - Validation: Checks that the contract is initialized.
 - Ensures the new cycle length is greater than zero and does not exceed the maximum allowed cycle length.  
 - Updates the cycle length in the global state.
-- Emits an event to notify external systems about the change.
 
 ```bash
 # Set a new cycle length
 cleos push action contract.name setcyclelen '[
     604800                  # New cycle length in seconds (7 days)
 ]' -p contract.name
-  ```
+```
 
 ### 6. Token Management
 The *settoken* action configures the reward token for the contract:
@@ -497,3 +505,5 @@ The contract name is configurable at build time. Use the build script:
 For example:
 ```bash
 ./buildContract.sh scores.boid
+
+```

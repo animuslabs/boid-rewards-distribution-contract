@@ -3,10 +3,14 @@
 #include <eosio/asset.hpp>
 #include "../tables/tables.hpp"
 
+#ifndef CONTRACT_NAME
+#define CONTRACT_NAME "gamerewards"
+#endif
+
 namespace gamerewards {
     using namespace eosio;
 
-    class [[eosio::contract("gamerewards")]] game_management : public contract {
+    class [[eosio::contract(CONTRACT_NAME)]] game_management : public contract {
     public:
         game_management(name receiver, name code, datastream<const char*> ds)
             : contract(receiver, code, ds) {}
@@ -16,7 +20,8 @@ namespace gamerewards {
             require_auth(_self);
 
             gameconfig_table configs(_self, _self.value);
-            check(configs.find(game_name.value) == configs.end(), "Game already exists");
+            std::string error_msg = "Game '" + game_name.to_string() + "' already exists";
+            check(configs.find(game_name.value) == configs.end(), error_msg.c_str());
 
             configs.emplace(_self, [&](auto& row) {
                 row.game_name = game_name;
@@ -35,7 +40,8 @@ namespace gamerewards {
 
             gameconfig_table configs(_self, _self.value);
             auto config = configs.find(game_name.value);
-            check(config != configs.end(), "Game configuration not found");
+            std::string error_msg = "Game configuration for '" + game_name.to_string() + "' not found";
+            check(config != configs.end(), error_msg.c_str());
 
             configs.modify(config, _self, [&](auto& row) {
                 row.metadata = metadata;
@@ -47,7 +53,8 @@ namespace gamerewards {
             require_auth(_self);
 
             gameconfig_table configs(_self, _self.value);
-            auto game = configs.get(game_name.value, "Game not found");
+            std::string error_msg = "Game '" + game_name.to_string() + "' not found";
+            auto game = configs.get(game_name.value, error_msg.c_str());
 
             configs.modify(game, _self, [&](auto& row) {
                 row.display_name = display_name;
@@ -62,7 +69,8 @@ namespace gamerewards {
             
             gameconfig_table configs(_self, _self.value);
             auto config = configs.find(game_name.value);
-            check(config != configs.end(), "Game configuration not found");
+            std::string error_msg = "Game configuration for '" + game_name.to_string() + "' not found";
+            check(config != configs.end(), error_msg.c_str());
             
             configs.erase(config);
         }

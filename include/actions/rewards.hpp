@@ -47,7 +47,7 @@ namespace gamerewards {
 
                 // Send reward to player
                 action(
-                    permission_level{contract_account, "active"_n},
+                    permission_level{contract_account, contract_account},
                     config->token_contract,
                     "transfer"_n,
                     std::make_tuple(

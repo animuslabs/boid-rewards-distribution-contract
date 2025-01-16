@@ -2,10 +2,14 @@
 #include <eosio/eosio.hpp>
 #include "../tables/tables.hpp"
 
+#ifndef CONTRACT_NAME
+#define CONTRACT_NAME "gamerewards"
+#endif
+
 namespace gamerewards {
     using namespace eosio;
 
-    class [[eosio::contract("gamerewards")]] cycle_management : public contract {
+    class [[eosio::contract(CONTRACT_NAME)]] cycle_management : public contract {
     private:
         global_singleton globals;
 
@@ -59,14 +63,6 @@ namespace gamerewards {
             
             state.cycle_length_sec = new_length_sec;
             globals.set(state, _self);
-
-            // Emit event for external systems
-            action(
-                permission_level{_self, "active"_n},
-                _self,
-                "cyclelenupd"_n,
-                std::make_tuple(new_length_sec, state.current_cycle)
-            ).send();
         }
     };
 }

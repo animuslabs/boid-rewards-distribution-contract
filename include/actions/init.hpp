@@ -2,10 +2,14 @@
 #include <eosio/eosio.hpp>
 #include "../tables/tables.hpp"
 
+#ifndef CONTRACT_NAME
+#define CONTRACT_NAME "gamerewards"
+#endif
+
 namespace gamerewards {
     using namespace eosio;
 
-    class [[eosio::contract("gamerewards")]] init : public contract {
+    class [[eosio::contract(CONTRACT_NAME)]] init : public contract {
     public:
         init(name receiver, name code, datastream<const char*> ds) 
             : contract(receiver, code, ds) {}
@@ -79,14 +83,6 @@ namespace gamerewards {
             };
 
             global.set(initial_state, _self);
-
-            // Emit initialization event
-            action(
-                permission_level{_self, "active"_n},
-                _self,
-                "initevent"_n,
-                std::make_tuple(cycle_length_sec, max_cycle_length_sec, start_time, initial_state.current_cycle)
-            ).send();
         }
     };
 }

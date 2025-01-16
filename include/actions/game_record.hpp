@@ -2,10 +2,22 @@
 #include <eosio/eosio.hpp>
 #include "../tables/tables.hpp"
 
-namespace gamerewards {
-    using namespace eosio;
+#ifndef CONTRACT_NAME
+#define CONTRACT_NAME "gamerewards"
+#endif
 
-    class [[eosio::contract("gamerewards")]] game_record : public eosio::contract {
+namespace gamerewards {
+
+    struct game_record_data {
+        name game_name;
+        name player;
+        std::map<name, uint64_t> stats;
+        time_point_sec completion_time;
+
+        EOSLIB_SERIALIZE(game_record_data, (game_name)(player)(stats)(completion_time))
+    };
+
+    class [[eosio::contract(CONTRACT_NAME)]] game_record : public eosio::contract {
     private:
         global_singleton globals;
 
@@ -19,7 +31,6 @@ namespace gamerewards {
         }
 
         uint32_t determine_cycle(const global_state& global, time_point_sec completion_time) {
-            // Calculate how many cycles have passed since start
             uint32_t elapsed_sec = completion_time.sec_since_epoch() - global.cycle_start_time.sec_since_epoch();
             return (elapsed_sec / global.cycle_length_sec) + 1;
         }
@@ -33,21 +44,14 @@ namespace gamerewards {
             return false;
         }
 
-    public:
-        game_record(name receiver, name code, datastream<const char*> ds)
-            : eosio::contract(receiver, code, ds), globals(_self, _self.value) {}
-
-        [[eosio::action]]
-        void recordgame(name game_name, name player, std::map<name, uint64_t> stats, time_point_sec completion_time) {
-            require_auth(_self);
-    
+        void process_game_record(const game_record_data& record) {
             // Get game config and validate
             gameconfig_table configs(_self, _self.value);
-            auto config = configs.get(game_name.value, "Game not found");
+            auto config = configs.get(record.game_name.value, "Game not found");
             check(config.active, "Game is not active");
 
             // Validate stats against config
-            validate_stats(config, stats);
+            validate_stats(config, record.stats);
 
             // Get current cycle info
             check(globals.exists(), "Contract not initialized");
@@ -55,35 +59,43 @@ namespace gamerewards {
 
             // Validate completion time
             auto now = time_point_sec(current_time_point());
-            check(completion_time <= now, "Game completion time cannot be in the future");
-            check(completion_time >= global_state.cycle_start_time, "Game completion time cannot be before contract initialization");
+            check(record.completion_time <= now, "Game completion time cannot be in the future");
+            check(record.completion_time >= global_state.cycle_start_time, "Game completion time cannot be before contract initialization");
 
             // Determine which cycle this game belongs to
-            uint32_t target_cycle = determine_cycle(global_state, completion_time);
+            uint32_t target_cycle = determine_cycle(global_state, record.completion_time);
 
             // Check if rewards have already been distributed for this cycle
-            check(!is_cycle_rewards_distributed(game_name, target_cycle), 
-                  "Cannot record stats for cycles where rewards have been distributed");
+            check(!is_cycle_rewards_distributed(record.game_name, target_cycle), 
+                  "Cannot record game for cycle " + std::to_string(target_cycle) + " - rewards already distributed");
 
-            // Save game record to history
-            // Each game played is permanently stored with all its stats
-            statshistory_table stats_history(_self, _self.value);
-            stats_history.emplace(_self, [&](auto& h) {
-                h.id = stats_history.available_primary_key();
-                h.game_name = game_name;
-                h.boid_id = player;
-                h.cycle_number = target_cycle;
-                h.stats = stats;
-                h.timestamp = completion_time;
+            // Record the stats
+            playerstats_table playerstats(_self, _self.value);
+            playerstats.emplace(_self, [&](auto& row) {
+                row.id = playerstats.available_primary_key();
+                row.boid_id = record.player;
+                row.game_name = record.game_name;
+                row.stats = record.stats;
+                row.cycle_number = target_cycle;
+                row.game_completion_time = record.completion_time;
+                row.last_updated = time_point_sec(current_time_point());
             });
+        }
 
-            // Emit stats recording event
-            action(
-                permission_level{_self, "active"_n},
-                _self,
-                "statsrecord"_n,
-                std::make_tuple(game_name, player, stats, target_cycle, completion_time)
-            ).send();
+    public:
+        game_record(name receiver, name code, datastream<const char*> ds)
+            : eosio::contract(receiver, code, ds), globals(_self, _self.value) {}
+
+        [[eosio::action]]
+        void recordgame(vector<game_record_data> records) {
+            require_auth(_self);
+            
+            check(!records.empty(), "No records provided");
+            check(records.size() <= 100, "Too many records in a single transaction");
+
+            for (const auto& record : records) {
+                process_game_record(record);
+            }
         }
     };
 }

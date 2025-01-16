@@ -23,109 +23,61 @@ include/
   │   ├── record_management.hpp   # Historical records management
   │   ├── reward_management.hpp   # Reward distribution logic
   ├── tables/
-  │   ├── game_tables.hpp         # Game-related table structures
-  │   ├── token_tables.hpp        # Token and global state structures
-  │   └── tables.hpp             # Central include point
+  │   ├── game_tables.hpp         # Game-related tables (gameconfig, playerstats, etc.)
+  │   ├── token_tables.hpp        # Token and global state tables
+  │   ├── user_tables.hpp         # User-related tables (user_stat, game_history)
+  │   └── tables.hpp             # Central include point for all tables
   └── types.hpp                   # Common type definitions
 ```
 
-## Tables and Data Structures
+## Table Structures
 
-### 1. Global State
-```cpp
-struct global_state {
-    bool initialized;
-    uint32_t current_cycle;
-    uint32_t cycle_length_sec;
-    uint32_t max_cycle_length_sec;
-    uint64_t cycle_start_time; // Time in seconds since epoch
-    uint64_t last_cycle_update;
-}
-```
-Purpose: Manages contract initialization and cycle timing
+### Game Tables (`game_tables.hpp`)
+- **gameconfig**: Configuration for each game
+  - Stores game name, display name, metadata, and stat configurations
+  - Primary key: `game_name`
 
-### 2. Game Configuration
-```cpp
-struct stat_config {
-    name stat_name;       // Unique identifier for the stat
-    string display_name;  // Human-readable name
-    string description;   // Description of what this stat measures
-    bool is_high_better; // True if higher values are better, false if lower is better
-}
+- **playerstats**: Player statistics for each game
+  - Tracks player performance, game completion, and cycle information
+  - Primary key: `id`
+  - Secondary indices: `byplayergame`, `bygame`, `byplayer`, `bygamecycle`, `bycompletion`
 
-struct gameconfig {
-    name game_name;
-    string display_name;
-    string metadata;
-    bool active;
-    vector<stat_config> stat_configs;
-}
-```
-Purpose: Defines game configurations and their associated statistics
+- **statshistory**: Historical record of player statistics
+  - Archives player performance data across cycles
+  - Primary key: `id`
+  - Secondary indices: `bygamestat`, `byplayerstat`, `bycycle`, `bygamecycle`
 
-### 3. Player Statistics
-```cpp
-struct playerstats {
-    uint64_t id;
-    name boid_id;           // Player account
-    name game_name;
-    map<name, uint64_t> stats;  // Combined stats map
-    uint32_t cycle_number;      // Determined by game completion time
-    bool rewards_distributed = false;
-    time_point_sec game_completion_time;  // When the game was completed
-    time_point_sec last_updated;
+- **reward_distribution_config**: Configuration for reward distribution
+  - Defines parameters for distributing rewards in each game
+  - Primary key: `game_name`
 
-    uint64_t primary_key() const { return id; }
-    uint64_t by_game() const { return game_name.value; }
-    uint64_t by_player() const { return boid_id.value; }
-    uint128_t by_player_game() const {
-        return ((uint128_t)boid_id.value << 64) | game_name.value;
-    }
-    uint128_t by_game_cycle() const {
-        return ((uint128_t)game_name.value << 64) | cycle_number;
-    }
-    uint128_t by_completion() const {
-        return ((uint128_t)game_completion_time.sec_since_epoch() << 64) | id;
-    }
-}
-```
-Purpose: Tracks current player statistics and their latest updates. This table is used by the recordgame action to store player stats and by the distribute action to handle rewards.
+- **rewardconfig**: Reward pool configuration
+  - Manages reward pools and distribution cycles
+  - Primary key: `game_name`
 
-### 4. Stats History
-```cpp
-struct statshistory {
-    uint64_t id;
-    name player;
-    name game_name;
-    map<name, uint64_t> stats;
-    uint32_t cycle_number;
-    uint64_t timestamp; // Time in seconds since epoch
+- **cycledistribution**: Cycle-based reward distribution tracking
+  - Records reward distributions per cycle
+  - Primary key: `id`
+  - Secondary indices: `bygamecycle`, `bygame`, `bycycle`
 
-    uint64_t primary_key() const { return id; }
-    uint128_t by_game_stat() const { return combine_names(game_name, stat_name); }
-    uint128_t by_player_stat() const { return combine_names(player, stat_name); }
-    uint128_t by_cycle() const { return ((uint128_t)game_name.value << 64) | cycle_number; }
-}
-```
-Purpose: Permanent historical record of all game stats
+### Token Tables (`token_tables.hpp`)
+- **token_config**: Token configuration
+  - Defines which tokens are used for rewards
+  - Primary key: `token_contract`
 
-### 5. Cycle Distribution
-```cpp
-struct cycledistribution {
-    uint64_t id;
-    name game_name;
-    uint32_t cycle_number;
-    name stat_name;
-    asset total_reward;
-    uint64_t distribution_time; // Time in seconds since epoch
+- **global_state**: Global contract state
+  - Manages contract-wide settings and cycle information
+  - Singleton table
 
-    uint64_t primary_key() const { return id; }
-    uint128_t by_game_cycle() const { return ((uint128_t)game_name.value << 64) | cycle_number; }
-    uint64_t by_game() const { return game_name.value; }
-    uint64_t by_cycle() const { return cycle_number; }
-}
-```
-Purpose: Tracks all reward distributions and which cycles they covered
+### User Tables (`user_tables.hpp`)
+- **user_stat**: User statistics
+  - Tracks cumulative user performance
+  - Primary key: `boid_id`
+
+- **game_history**: Game participation history
+  - Records individual game completions
+  - Primary key: `id`
+  - Secondary indices: `byuser`, `byrecord`
 
 ## Setup Tutorial
 
@@ -534,3 +486,14 @@ cleos push action contract.name settoken '[
     "4,TOKEN"              # Token symbol
 ]' -p contract.name
 ```
+
+## Building the Contract
+
+The contract name is configurable at build time. Use the build script:
+```bash
+./buildContract.sh <contract_name>
+```
+
+For example:
+```bash
+./buildContract.sh scores.boid

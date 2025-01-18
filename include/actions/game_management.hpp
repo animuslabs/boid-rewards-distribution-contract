@@ -2,6 +2,8 @@
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 #include "../tables/tables.hpp"
+#include <vector>
+#include <string>
 
 #ifndef CONTRACT_NAME
 #define CONTRACT_NAME "gamerewards"
@@ -9,77 +11,70 @@
 
 namespace gamerewards {
     using namespace eosio;
+    using std::string;
+    using std::vector;
 
     class [[eosio::contract(CONTRACT_NAME)]] game_management : public contract {
     public:
         game_management(name receiver, name code, datastream<const char*> ds)
             : contract(receiver, code, ds) {}
 
-        [[eosio::action]]
-        void addgame(name game_name, string display_name, string metadata, vector<stat_config> stat_configs) {
-            require_auth(_self);
-
-            gameconfig_table configs(_self, _self.value);
-            std::string error_msg = "Game '" + game_name.to_string() + "' already exists";
-            check(configs.find(game_name.value) == configs.end(), error_msg.c_str());
-
-            configs.emplace(_self, [&](auto& row) {
-                row.game_name = game_name;
-                row.display_name = display_name;
-                row.metadata = metadata;
-                row.stat_configs = stat_configs;
-            });
+        /**
+         * Validate that stat names are unique.
+         * @param stats_names List of stat names to validate.
+         */
+        void validate_stats(const vector<name>& stats_names) {
+            for (size_t i = 0; i < stats_names.size(); ++i) {
+                for (size_t j = i + 1; j < stats_names.size(); ++j) {
+                    check(stats_names[i] != stats_names[j],
+                        "Duplicate stat name found: " + stats_names[i].to_string());
+                }
+            }
         }
 
         [[eosio::action]]
-        void configgame(
-            name game_name,
-            std::string metadata
+        void setgame(
+            uint8_t game_id,
+            std::string display_name,
+            std::string metadata,
+            vector<eosio::name> stats_names
         ) {
             require_auth(_self);
 
-            gameconfig_table configs(_self, _self.value);
-            auto config = configs.find(game_name.value);
-            std::string error_msg = "Game configuration for '" + game_name.to_string() + "' not found";
-            check(config != configs.end(), error_msg.c_str());
+            // Validate stat configs
+            validate_stats(stats_names);
 
-            configs.modify(config, _self, [&](auto& row) {
-                row.metadata = metadata;
-            });
+            gameconfig_table configs(_self, _self.value);
+            auto game_itr = configs.find(game_id);
+
+            if (game_itr == configs.end()) {
+                // Add a new game
+                configs.emplace(_self, [&](auto& row) {
+                    row.game_id = game_id;
+                    row.display_name = display_name;
+                    row.metadata = metadata;
+                    row.stats_names = stats_names;
+                    row.active = true;
+                });
+            } else {
+                // Update the existing game
+                configs.modify(game_itr, _self, [&](auto& row) {
+                    row.display_name = display_name;
+                    row.metadata = metadata;
+                    row.stats_names = stats_names;
+                });
+            }
         }
 
         [[eosio::action]]
-        void updategame(name game_name, string display_name, string metadata, vector<stat_config> stat_configs) {
+        void removegame(uint8_t game_id) {
             require_auth(_self);
 
             gameconfig_table configs(_self, _self.value);
-            std::string error_msg = "Game '" + game_name.to_string() + "' not found";
-            auto game = configs.get(game_name.value, error_msg.c_str());
+            auto config_itr = configs.find(game_id);
+            check(config_itr != configs.end(), "Game ID not found");
 
-            configs.modify(game, _self, [&](auto& row) {
-                row.display_name = display_name;
-                row.metadata = metadata;
-                row.stat_configs = stat_configs;
-            });
-        }
-
-        [[eosio::action]]
-        void removegame(name game_name) {
-            require_auth(_self);
-            
-            gameconfig_table configs(_self, _self.value);
-            auto config = configs.find(game_name.value);
-            std::string error_msg = "Game configuration for '" + game_name.to_string() + "' not found";
-            check(config != configs.end(), error_msg.c_str());
-            
-            configs.erase(config);
-        }
-
-        [[eosio::action]]
-        void getconfig(name game_name) {
-            gameconfig_table configs(_self, _self.value);
-            auto config = configs.find(game_name.value);
-            check(config != configs.end(), "Game configuration not found");
+            configs.erase(config_itr);
         }
     };
 }

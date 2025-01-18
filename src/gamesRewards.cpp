@@ -2,26 +2,23 @@
 #include <eosio/asset.hpp>
 #include <eosio/system.hpp>
 #include "../include/tables/tables.hpp"
-#include "../include/actions/game_management.hpp"
-#include "../include/actions/record_management.hpp"
-#include "../include/actions/reward_management.hpp"
-#include "../include/actions/cycle_management.hpp"
-#include "../include/actions/init.hpp"
-#include "../include/actions/game_record.hpp"
+#include "../include/actions/actions.hpp"
+#include <vector>
+#include <string>
 
 using namespace eosio;
 using namespace gamerewards;
+using std::string;
+using std::vector;
 
 #ifndef CONTRACT_NAME
-#define CONTRACT_NAME "gamerewards"
+#define CONTRACT_NAME gamerewards
 #endif
 
 class [[eosio::contract(CONTRACT_NAME)]] gamerewards_contract : public contract {
 private:
     gamerewards::game_management game_mgmt;
-    gamerewards::record_management record_mgmt;
     gamerewards::reward_management reward_mgmt;
-    gamerewards::cycle_management cycle_mgmt;
     gamerewards::init init_mgmt;
     gamerewards::game_record game_record_mgmt;
 
@@ -29,56 +26,73 @@ public:
     gamerewards_contract(name receiver, name code, datastream<const char*> ds)
         : contract(receiver, code, ds),
           game_mgmt(receiver, code, ds),
-          record_mgmt(receiver, code, ds),
           reward_mgmt(receiver, code, ds),
-          cycle_mgmt(receiver, code, ds),
           init_mgmt(receiver, code, ds),
           game_record_mgmt(receiver, code, ds) {}
 
     // Initialization action
     [[eosio::action]]
-    void initcontract(time_point_sec start_time, uint32_t cycle_length_sec, uint32_t max_cycle_length_sec) {
-        init_mgmt.initcontract(start_time, cycle_length_sec, max_cycle_length_sec);
+    void initcontract(time_point_sec start_time, uint32_t cycle_length_sec, uint32_t max_cycle_length_sec, 
+                      uint8_t max_reward_tiers, uint8_t min_reward_percentage) {
+        init_mgmt.initcontract(start_time, cycle_length_sec, max_cycle_length_sec, max_reward_tiers, min_reward_percentage);
     }
 
     // Game management actions
     [[eosio::action]]
-    void addgame(name game_name, string display_name, string metadata, vector<gamerewards::stat_config> stat_configs) {
-        game_mgmt.addgame(game_name, display_name, metadata, stat_configs);
+    void setgame(uint8_t game_id, string display_name, string metadata, std::vector<eosio::name> stat_names) {
+        game_mgmt.setgame(game_id, display_name, metadata, stat_names);
     }
 
     [[eosio::action]]
-    void updategame(name game_name, string display_name, string metadata, vector<gamerewards::stat_config> stat_configs) {
-        game_mgmt.updategame(game_name, display_name, metadata, stat_configs);
-    }
-
-    [[eosio::action]]
-    void removegame(name game_name) {
-        game_mgmt.removegame(game_name);
+    void removegame(uint8_t game_id) {
+        game_mgmt.removegame(game_id);
     }
 
     // Record management actions
     [[eosio::action]]
-    void recordgame(vector<gamerewards::game_record_data> records) {
+    void recordgame(std::vector<gamerewards::game_record_data> records) {
         game_record_mgmt.recordgame(records);
+    }
+
+    [[eosio::action]]
+    void clearrecord(std::optional<uint32_t> cycle_number = std::nullopt,
+                     std::optional<time_point_sec> start_time = std::nullopt,
+                     std::optional<time_point_sec> end_time = std::nullopt,
+                     std::optional<bool> rewards_distributed = std::nullopt,
+                     uint64_t max_deletions = 1000) {
+        game_record_mgmt.clearrecord(cycle_number, start_time, end_time, rewards_distributed, max_deletions);
+    }
+
+    [[eosio::action]]
+    void updaterecord(
+                        uint64_t record_id,
+                        std::optional<std::vector<eosio::name>> updated_stats_names = std::nullopt,
+                        std::optional<std::vector<uint64_t>> updated_stats_values = std::nullopt,
+                        std::optional<time_point_sec> updated_completion_time = std::nullopt,
+                        std::optional<bool> rewards_distributed = std::nullopt) {
+        game_record_mgmt.updaterecord(record_id, updated_stats_names, updated_stats_values, updated_completion_time, rewards_distributed);
     }
 
     // Reward management actions
     [[eosio::action]]
-    void setdistconf(name game_name, name destination_contract, std::string memo_template) {
-        reward_mgmt.setdistconf(game_name, destination_contract, memo_template);
+    void setdistconf(uint8_t game_id, name destination_contract, std::string memo_template, bool use_direct_transfer = true) {
+        reward_mgmt.setdistconf(game_id, destination_contract, memo_template, use_direct_transfer);
     }
 
     [[eosio::action]]
-    void distribute(name game_name, uint32_t cycle, name stat_name, asset total_reward, 
-                   name destination_contract, std::vector<uint8_t> reward_percentages) {
-        reward_mgmt.distribute(game_name, cycle, stat_name, total_reward, 
-                             destination_contract, reward_percentages);
+    void distribute(uint8_t game_id, uint32_t cycle, name stat_name, asset total_reward, 
+                    name token_contract, std::vector<uint8_t> reward_percentages) {
+        reward_mgmt.distribute(game_id, cycle, stat_name, total_reward, token_contract, reward_percentages);
     }
 
-    // Cycle management actions
+    // Token management actions
     [[eosio::action]]
-    void setcyclelen(uint32_t new_length_sec) {
-        cycle_mgmt.setcyclelen(new_length_sec);
+    void settoken(name token_contract, symbol token_symbol, bool enabled = true) {
+        reward_mgmt.settoken(token_contract, token_symbol, enabled);
+    }
+
+    [[eosio::action]]
+    void removetoken(symbol token_symbol) {
+        reward_mgmt.removetoken(token_symbol);
     }
 };

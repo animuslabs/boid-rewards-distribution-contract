@@ -1,44 +1,15 @@
 {
     "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
     "version": "eosio::abi/1.2",
-    "types": [
-        {
-            "new_type_name": "B_vector_name_E",
-            "type": "name[]"
-        },
-        {
-            "new_type_name": "B_vector_uint64_E",
-            "type": "uint64[]"
-        }
-    ],
+    "types": [],
     "structs": [
         {
             "name": "clearrecord",
             "base": "",
             "fields": [
                 {
-                    "name": "cycle_number",
-                    "type": "uint32?"
-                },
-                {
-                    "name": "start_time",
-                    "type": "time_point_sec?"
-                },
-                {
-                    "name": "end_time",
-                    "type": "time_point_sec?"
-                },
-                {
-                    "name": "rewards_distributed",
-                    "type": "bool?"
-                },
-                {
-                    "name": "max_deletions",
-                    "type": "uint64"
-                },
-                {
-                    "name": "return_only",
-                    "type": "bool"
+                    "name": "record_ids",
+                    "type": "uint64[]"
                 }
             ]
         },
@@ -271,6 +242,28 @@
             ]
         },
         {
+            "name": "rewarddistconfig",
+            "base": "",
+            "fields": [
+                {
+                    "name": "game_id",
+                    "type": "uint8"
+                },
+                {
+                    "name": "destination_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "memo_template",
+                    "type": "string"
+                },
+                {
+                    "name": "use_direct_transfer",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
             "name": "rewardsrecorded",
             "base": "",
             "fields": [
@@ -383,32 +376,6 @@
                     "type": "bool"
                 }
             ]
-        },
-        {
-            "name": "updaterecord",
-            "base": "",
-            "fields": [
-                {
-                    "name": "record_id",
-                    "type": "uint64"
-                },
-                {
-                    "name": "updated_stats_names",
-                    "type": "B_vector_name_E?"
-                },
-                {
-                    "name": "updated_stats_values",
-                    "type": "B_vector_uint64_E?"
-                },
-                {
-                    "name": "updated_completion_time",
-                    "type": "time_point_sec?"
-                },
-                {
-                    "name": "rewards_distributed",
-                    "type": "bool?"
-                }
-            ]
         }
     ],
     "actions": [
@@ -456,11 +423,6 @@
             "name": "settoken",
             "type": "settoken",
             "ricardian_contract": ""
-        },
-        {
-            "name": "updaterecord",
-            "type": "updaterecord",
-            "ricardian_contract": ""
         }
     ],
     "tables": [
@@ -488,6 +450,13 @@
         {
             "name": "players",
             "type": "players",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "rewarddist",
+            "type": "rewarddistconfig",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

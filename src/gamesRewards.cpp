@@ -55,22 +55,8 @@ public:
     }
 
     [[eosio::action]]
-    void clearrecord(std::optional<uint32_t> cycle_number = std::nullopt,
-                     std::optional<time_point_sec> start_time = std::nullopt,
-                     std::optional<time_point_sec> end_time = std::nullopt,
-                     std::optional<bool> rewards_distributed = std::nullopt,
-                     uint64_t max_deletions = 1000) {
-        game_record_mgmt.clearrecord(cycle_number, start_time, end_time, rewards_distributed, max_deletions);
-    }
-
-    [[eosio::action]]
-    void updaterecord(
-                        uint64_t record_id,
-                        std::optional<std::vector<eosio::name>> updated_stats_names = std::nullopt,
-                        std::optional<std::vector<uint64_t>> updated_stats_values = std::nullopt,
-                        std::optional<time_point_sec> updated_completion_time = std::nullopt,
-                        std::optional<bool> rewards_distributed = std::nullopt) {
-        game_record_mgmt.updaterecord(record_id, updated_stats_names, updated_stats_values, updated_completion_time, rewards_distributed);
+    void clearrecord(const std::vector<uint64_t>& record_ids) {
+        game_record_mgmt.clearrecord(record_ids);
     }
 
     // Reward management actions

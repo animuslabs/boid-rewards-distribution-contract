@@ -1,0 +1,9 @@
+[Mainnet]
+native_api="https://telos.api.boid.animus.is"
+[Testnet]
+native_api="https://telos.testnet.api.boid.animus.is"
+[Keys]
+priv_key="your_account_key_here"
+testAcc_Key="your_account_key_here"
+[Other]
+conctractAcc="scores.boid"

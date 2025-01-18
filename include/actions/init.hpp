@@ -56,9 +56,6 @@ namespace gamerewards {
 
             // Initialize the global state
             global_singleton globals(_self, _self.value);
-            check(globals.exists(), "Global configuration not found");
-            auto global_config = globals.get();
-
             globalconfig initial_state{
                 .initialized = true,
                 .cycles_initiation_time = start_time,
@@ -69,9 +66,6 @@ namespace gamerewards {
             };
 
             globals.set(initial_state, _self);
-
-            // Debug message for testing
-            print("Contract initialized successfully.");
         }
 
         template<typename Table>

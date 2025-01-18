@@ -36,3 +36,6 @@ CMakeCache.txt
 .cmake/
 CMakeFiles/
 .DS_Store
+node_modules/
+dist/
+config.toml

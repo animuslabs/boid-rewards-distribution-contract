@@ -59,7 +59,7 @@ namespace gamerewards {
 
 
         // Configuration for how rewards should be distributed for a game
-    struct [[eosio::table]] rewarddistconfig {
+    struct [[eosio::table, eosio::contract(CONTRACT_NAME)]] rewarddistconfig {
         uint8_t game_id;
         eosio::name destination_contract;     // Where to send the rewards (e.g., "boid")
         std::string memo_template;     // Template for memo (e.g., "deposit boid_id={player}")

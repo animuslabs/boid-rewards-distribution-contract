@@ -52,11 +52,9 @@ namespace gamerewards {
     };
 
     using gamerecords_table = eosio::multi_index<"gamerecords"_n, gamerecords,
-        indexed_by<"byplayergame"_n, const_mem_fun<gamerecords, uint128_t, &gamerecords::by_player_game>>,
         indexed_by<"bygame"_n, const_mem_fun<gamerecords, uint64_t, &gamerecords::by_game>>,
         indexed_by<"byplayer"_n, const_mem_fun<gamerecords, uint64_t, &gamerecords::by_player>>,
-        indexed_by<"bygamecycle"_n, const_mem_fun<gamerecords, uint128_t, &gamerecords::by_game_cycle>>,
-        indexed_by<"bycompletion"_n, const_mem_fun<gamerecords, uint128_t, &gamerecords::by_completion>>
+        indexed_by<"bygamecycle"_n, const_mem_fun<gamerecords, uint128_t, &gamerecords::by_game_cycle>>
     >;
 
     struct [[eosio::table, eosio::contract(CONTRACT_NAME)]] rewardsrecorded {

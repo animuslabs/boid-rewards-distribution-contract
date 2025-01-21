@@ -5,6 +5,7 @@
 #include <eosio/time.hpp>
 #include "config_tables.hpp"
 #include "contract_tables.hpp"
+#include "boid_accounts.hpp"
 
 // This file serves as a central include point for all table definitions
 // Each specific table type is defined in its own file for better organization

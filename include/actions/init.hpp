@@ -48,7 +48,6 @@ namespace gamerewards {
             // Clear all tables
             clear_table<global_singleton>(_self);
             clear_table<tokenconfig_table>(_self);
-            clear_table<players_table>(_self);
             clear_table<gamerecords_table>(_self);        
             clear_table<rewardsrecorded_table>(_self);
             clear_table<rewarddistconfig_table>(_self);

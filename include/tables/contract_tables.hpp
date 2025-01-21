@@ -16,16 +16,6 @@ namespace gamerewards {
     using std::vector;
     using std::map;
 
-    // Centralized table for player data
-    struct [[eosio::table, eosio::contract(CONTRACT_NAME)]] players {
-        eosio::name player;                // Unique identifier for the user
-        std::string metadata;             // Additional user-related metadata
-        uint32_t games_played = 0;  // Total number of games played by the player
-
-        uint64_t primary_key() const { return player.value; }
-    };
-    typedef eosio::multi_index<"players"_n, players> players_table;
-
     struct [[eosio::table, eosio::contract(CONTRACT_NAME)]] gamerecords {
         uint64_t id;
         name player;
@@ -64,6 +54,7 @@ namespace gamerewards {
         eosio::name stat_name;                  // Stat name used for rewards
         eosio::asset total_reward;              // Total reward distributed
         std::vector<name> rewarded_players;   // List of rewarded players
+        std::vector<eosio::asset> player_rewards; // Rewards for each player
         eosio::time_point_sec distribution_time;// Distribution timestamp
 
         uint64_t primary_key() const { return id; }

@@ -21,6 +21,7 @@ namespace gamerewards {
     public:
         reward_management(eosio::name receiver, eosio::name code, datastream<const char*> ds)
             : contract(receiver, code, ds) {}
+            
 
         [[eosio::action]]
         void distribute(
@@ -51,6 +52,13 @@ namespace gamerewards {
             check(game_itr != configs.end(), "Game ID not found");
             check(game_itr->active, "Game is not active");
 
+            // Check if rewards have already been distributed for this cycle
+            rewardsrecorded_table rewards_records(_self, _self.value);
+            auto rewards_idx = rewards_records.get_index<"bygamecycle"_n>();
+            uint128_t cycle_key = ((uint128_t)game_id << 64) | cycle_number;
+            auto reward_itr = rewards_idx.find(cycle_key);
+            check(reward_itr == rewards_idx.end(), "Rewards have already been distributed for this cycle");
+
             // Validate token configuration
             tokenconfig_table token_configs(_self, _self.value);
             auto token_cfg = token_configs.find(total_reward.symbol.raw());
@@ -61,7 +69,6 @@ namespace gamerewards {
             // Fetch player stats from gamerecords
             gamerecords_table game_records(_self, _self.value);
             auto idx = game_records.get_index<"bygamecycle"_n>();
-            uint128_t cycle_key = ((uint128_t)game_id << 64) | cycle_number;
 
             // Fetch reward distribution configuration
             rewarddistconfig_table distconfigs(_self, _self.value);
@@ -70,8 +77,9 @@ namespace gamerewards {
             const auto& dist_config = *dist_itr;
 
             // Validate cycle
-            check(cycle_number > 0 && cycle_number <= global_state.get_current_cycle(),
-                  "Invalid cycle number");
+            uint32_t current_cycle = global_state.get_current_cycle();
+            check(cycle_number > 0, "Invalid cycle number: must be greater than zero");
+            check(cycle_number < current_cycle, "Cannot distribute rewards for an ongoing or future cycle");
 
             std::vector<std::pair<eosio::name, uint64_t>> player_scores;
 
@@ -97,8 +105,8 @@ namespace gamerewards {
                 player_scores.resize(global_state.max_reward_tiers);
             }
 
-            // Distribute rewards
-            distribute_rewards(player_scores, total_reward, reward_percentages, token_contract, dist_config);
+            // Distribute rewards and record the distribution
+            distribute_rewards(player_scores, total_reward, reward_percentages, token_contract, dist_config, game_id, cycle_number, stat_name);
 
             // Update all records in the cycle as rewards distributed
             for (auto it = idx.lower_bound(cycle_key); 
@@ -115,29 +123,42 @@ namespace gamerewards {
             const asset& total_reward,
             const std::vector<uint8_t>& reward_percentages,
             eosio::name token_contract,
-            const rewarddistconfig& dist_config
+            const rewarddistconfig& dist_config,
+            uint8_t game_id,
+            uint32_t cycle_number,
+            eosio::name stat_name
         ) {
             size_t current_tier = 0;
+            std::vector<name> rewarded_players;
+            std::vector<eosio::asset> player_rewards;
+            asset remaining_reward = total_reward;
+            asset distributed_total(0, total_reward.symbol);
 
             for (const auto& [player, stat_value] : sorted_players) {
                 if (current_tier >= reward_percentages.size()) break;
 
                 uint8_t percentage = reward_percentages[current_tier];
                 asset reward = total_reward * percentage / 100;
+
+                // Adjust reward to token precision
+                reward.amount = (reward.amount / total_reward.symbol.precision()) * total_reward.symbol.precision();
                 check(reward.amount > 0, "Reward amount too small to distribute");
+                
+                remaining_reward -= reward;
+                distributed_total += reward;
 
                 // Generate memo using the template
                 std::string memo = dist_config.memo_template;
-                size_t player_pos = memo.find("{player}");
+                size_t player_pos = memo.find("{{player}}");
                 if (player_pos != std::string::npos) {
-                    memo.replace(player_pos, 8, player.to_string());
+                    memo.replace(player_pos, 10, player.to_string());
                 }
 
                 // Perform transfer
                 if (dist_config.use_direct_transfer) {
                     // Direct transfer to the player
                     action(
-                        permission_level{_self, name()},
+                        permission_level{_self, "active"_n},
                         token_contract,
                         "transfer"_n,
                         std::make_tuple(_self, player, reward, memo)
@@ -145,16 +166,39 @@ namespace gamerewards {
                 } else {
                     // Transfer to destination contract
                     action(
-                        permission_level{_self, name()},
-                        dist_config.destination_contract,
+                        permission_level{_self, "active"_n},
+                        token_contract,
                         "transfer"_n,
                         std::make_tuple(_self, dist_config.destination_contract, reward, memo)
                     ).send();
                 }
 
+                rewarded_players.push_back(player);
+                player_rewards.push_back(reward);
                 current_tier++;
             }
+
+            // Handle any remaining tokens
+            if (remaining_reward.amount > 0) {
+                // Optionally redistribute or handle the remaining reward
+                // Add remaining tokens to the top player or keep in contract
+                print("Remaining reward after distribution: ", remaining_reward.to_string(), "\n");
+            }
+
+            // Record the distribution in rewardsrecorded table
+            rewardsrecorded_table rewards_records(_self, _self.value);
+            rewards_records.emplace(_self, [&](auto& record) {
+                record.id = rewards_records.available_primary_key();
+                record.game_id = game_id;
+                record.cycle_number = cycle_number;
+                record.stat_name = stat_name;
+                record.total_reward = distributed_total;  // Actual amount distributed
+                record.rewarded_players = rewarded_players;
+                record.player_rewards = player_rewards;
+                record.distribution_time = eosio::current_time_point();
+            });
         }
+
     
         [[eosio::action]]
         void setdistconf(uint8_t game_id, eosio::name destination_contract, std::string memo_template, bool use_direct_transfer = false) {

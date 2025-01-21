@@ -15,12 +15,13 @@ include/
   │   ├── actions.hpp           # Central include file for all actions
   │   ├── game_management.hpp   # Game state and configuration management
   │   ├── game_record.hpp       # Game record handling and filtering
-  │   ├── init.hpp             # Contract initialization and table management
+  │   ├── init.hpp              # Contract initialization and table management
   │   └── reward_management.hpp # Reward distribution and calculations
   ├── tables/
+  |   |-- boid_accounts.hpp     # boid contract table
   │   ├── config_tables.hpp     # Configuration table definitions
   │   ├── contract_tables.hpp   # Game and reward table definitions
-  │   └── tables.hpp           # Central include file for all tables
+  │   └── tables.hpp            # Central include file for all tables
 ```
 
 ## Table Structures
@@ -134,26 +135,31 @@ This table is used to log and retrieve game-related data, ensuring accurate rewa
 ### 6. `rewardsrecorded` Table
 
 #### Purpose
-This table logs information about rewards distributed for specific games and cycles.
+This table logs information about rewards distributed for specific games and cycles, and prevents double distribution of rewards.
 
 #### Key Fields
 - **id**: Unique identifier for the reward record
 - **game_id**: Identifier for the specific game
 - **cycle_number**: The reward cycle during which the rewards were distributed
 - **stat_name**: The name of the statistic used for calculating rewards (e.g., kills, score)
-- **total_reward**: The total reward amount distributed for the game and cycle
+- **total_reward**: The total reward amount actually distributed for the game and cycle
 - **rewarded_players**: A list of players who received rewards
+- **player_rewards**: A list of reward amounts corresponding to each player
 - **distribution_time**: The time when the rewards were distributed
 
 #### Indexes
-- **by_game_cycle**: Indexes records by a combination of game ID and cycle number
+- **by_game_cycle**: Indexes records by a combination of game ID and cycle number, used to prevent double distribution
 
 #### Key Features
-- Tracks which players received rewards and for which games and cycles
+- Tracks which players received rewards and their individual reward amounts
 - Provides a historical record of rewards distribution
+- Prevents double distribution of rewards for the same game cycle
 
 #### Usage
-This table is used for auditing and verifying reward distributions, as well as providing transparency to players and administrators.
+This table is used for:
+- Preventing duplicate reward distributions
+- Auditing and verifying reward distributions
+- Providing transparency to players and administrators
 
 ## Actions
 
@@ -252,7 +258,7 @@ cleos push action gamerewards setrewardcfg '[1, "boid", "deposit boid_id={player
 
 ### `distribute`
 
-Distributes rewards to players based on game stats.
+Distributes rewards to players based on game stats for a completed cycle.
 
 #### Parameters:
 - `game_id` (uint8_t): ID of the game
@@ -260,7 +266,22 @@ Distributes rewards to players based on game stats.
 - `stat_name` (name): Stat to use for reward calculation
 - `total_reward` (asset): Total amount of reward to distribute
 - `token_contract` (name): Contract of the reward token
-- `reward_percentages` (vector<uint8_t>): List of percentages for each tier
+- `reward_percentages` (vector<uint8_t>): List of percentages for each tier (must sum to 100)
+
+#### Validation:
+- Ensures cycle is completed (cannot distribute for ongoing or future cycles)
+- Prevents double distribution for the same game cycle
+- Validates token configuration and contract
+- Checks reward percentages sum to 100
+- Adjusts rewards to match token precision
+
+#### Distribution Process:
+1. Collects and sorts players by their performance in the specified stat
+2. Calculates individual rewards based on tier percentages
+3. Adjusts rewards to match token precision
+4. Transfers rewards either directly to players or through a destination contract
+5. Records distribution details including individual player rewards
+6. Logs any remaining undistributed rewards due to precision adjustments
 
 #### Example:
 ```bash
@@ -339,7 +360,8 @@ The `distribute` action is responsible for allocating rewards to players based o
 
 ### Step 4: Distribute Rewards
 - For each top player, calculate the reward based on their tier's percentage.
-- Transfer the reward directly to the player or to a destination contract, depending on the configuration.
+- Adjust rewards to match token precision.
+- Transfer rewards either directly to players or through a destination contract.
 - Generate a memo for the transfer using a predefined template.
 
 ### Step 5: Update Game Records
@@ -354,12 +376,4 @@ Distribute 1000 TLOS tokens for "kills" in `game_id = 1`, `cycle_number = 2`. Th
 
 ### Command:
 ```bash
-cleos push action gamerewards distribute '[
-    1,
-    2,
-    "kills",
-    "1000.0000 TLOS",
-    "eosio.token",
-    [50, 30, 20]
-]' -p gamerewards@active
-```
+cleos push action gamerewards distribute '[1, 1, "kills", "1000.0000 BOID", "token.boid", [50, 30, 20]]' -p gamerewards@active

@@ -194,24 +194,6 @@
             ]
         },
         {
-            "name": "players",
-            "base": "",
-            "fields": [
-                {
-                    "name": "player",
-                    "type": "name"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
-                },
-                {
-                    "name": "games_played",
-                    "type": "uint32"
-                }
-            ]
-        },
-        {
             "name": "recordgame",
             "base": "",
             "fields": [
@@ -290,6 +272,10 @@
                 {
                     "name": "rewarded_players",
                     "type": "name[]"
+                },
+                {
+                    "name": "player_rewards",
+                    "type": "asset[]"
                 },
                 {
                     "name": "distribution_time",
@@ -443,13 +429,6 @@
         {
             "name": "globalconfig",
             "type": "globalconfig",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        },
-        {
-            "name": "players",
-            "type": "players",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

@@ -7,7 +7,9 @@ const key = configuration.Keys.priv_key;
 const testAccKey = configuration.Keys.testAcc_Key;
 const conctractAcc = configuration.Other.conctractAcc;
 
-const futureDate = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+const futureDate = new Date(Date.now() + 1 * 60 * 1000); // 1 minutes from now
+// Specify the desired start time (1st February 2025)
+const specificDate = new Date("2025-02-01T00:00:00Z"); // UTC time
 
 // 1. Initiate contract
 // Set global configuration or update the existing one
@@ -211,9 +213,9 @@ async function setDistConfig(chain: "mainnet" | "testnet", permission = "active"
       const actionName = "setdistconf";
         const dataObject: scoresBoidActionParams.setdistconf = {
           game_id: UInt8.from(1),
-          destination_contract: Name.from("token.boid"),
-          memo_template: "deposit boid_id={{game_id}}",
-          use_direct_transfer: true
+          destination_contract: Name.from("boid"),
+          memo_template: "deposit boid_id={{player}}",
+          use_direct_transfer: false
         };
         createAndSendAction(
           chain,
@@ -240,9 +242,9 @@ async function distribute(chain: "mainnet" | "testnet", permission = "active") {
           game_id: UInt8.from(1),
           cycle_number: UInt32.from(1),
           stat_name: Name.from("score"),
-          total_reward: Asset.from("100.0000 BOID"),
+          total_reward: Asset.from("10.0000 BOID"),
           token_contract: Name.from("token.boid"),
-          reward_percentages: [50, 30, 20]
+          reward_percentages: [40, 30, 20, 10]
         };
         createAndSendAction(
           chain,
@@ -261,27 +263,75 @@ async function distribute(chain: "mainnet" | "testnet", permission = "active") {
     }
   };
 
-// initiateContract("mainnet");
-// setGame("mainnet");
-// setToken("mainnet");
-// setDistConfig("mainnet");
+  // setup smart contract with game, token and distribution configuration
+  async function runSetupSequence() {
+    try {
+        console.log("Starting contract setup sequence...");
 
-// recordGame("mainnet", "active", key, [
+        // Step 1: Initiate the contract
+        console.log("Initializing contract...");
+        await initiateContract("mainnet");
+        console.log("Contract initialized.");
+        
+        // Step 2: Set game configuration
+        setTimeout(async () => {
+            console.log("Setting game configuration...");
+            await setGame("mainnet");
+            console.log("Game configuration set.");
+            
+            // Step 3: Set token configuration
+            setTimeout(async () => {
+                console.log("Setting token configuration...");
+                await setToken("mainnet");
+                console.log("Token configuration set.");
+                
+                // Step 4: Set distribution configuration
+                setTimeout(async () => {
+                    console.log("Setting distribution configuration...");
+                    await setDistConfig("mainnet");
+                    console.log("Distribution configuration set.");
+                    
+                    console.log("Contract setup sequence completed.");
+                }, 5000); // Wait 5 seconds before running the next step
+            }, 5000); // Wait 5 seconds before running the next step
+        }, 5000); // Wait 5 seconds before running the next step
+    } catch (error) {
+        console.error("An error occurred during the setup sequence:", error);
+    }
+}
+
+// Execute the sequence
+// runSetupSequence();
+
+
+// recordGame("mainnet", "report", testAccKey, [
 //   {
-//     player: Name.from("player1"),
+//     player: Name.from("seth.voice"),
 //     stats_names: [Name.from("score"), Name.from("kills")],
 //     stats_values: [UInt64.from(100), UInt64.from(10)],
 //     completion_time: TimePointSec.from(new Date())
 //   },
 //   {
-//     player: Name.from("player2"),
+//     player: Name.from("labcoat"),
+//     stats_names: [Name.from("score"), Name.from("kills")],
+//     stats_values: [UInt64.from(200), UInt64.from(20)],
+//     completion_time: TimePointSec.from(new Date())
+//   },
+//   {
+//     player: Name.from("chris.oid"),
+//     stats_names: [Name.from("score"), Name.from("kills")],
+//     stats_values: [UInt64.from(200), UInt64.from(20)],
+//     completion_time: TimePointSec.from(new Date())
+//   },
+//   {
+//     player: Name.from("admlight.oid"),
 //     stats_names: [Name.from("score"), Name.from("kills")],
 //     stats_values: [UInt64.from(200), UInt64.from(20)],
 //     completion_time: TimePointSec.from(new Date())
 //   }
 // ]);
 
-
+// setDistConfig("mainnet");
 distribute("mainnet");
 
 // removeGame("mainnet");

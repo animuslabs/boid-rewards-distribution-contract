@@ -233,6 +233,24 @@ namespace gamerewards {
                 });
             }
         }
+
+        [[eosio::action]]
+        void rmdistconf(uint8_t game_id) {
+            require_auth(_self);
+
+            // Validate game existence
+            gameconfig_table configs(_self, _self.value);
+            auto game_itr = configs.find(game_id);
+            check(game_itr != configs.end(), "Game ID not found");
+
+            // Access reward distribution configuration table
+            rewarddistconfig_table distconfigs(_self, _self.value);
+            auto dist_itr = distconfigs.find(game_id);
+            check(dist_itr != distconfigs.end(), "Reward distribution config not found for the specified game ID");
+
+            // Erase the record
+            distconfigs.erase(dist_itr);
+        }
     
         [[eosio::action]]
         void settoken(name token_contract, symbol token_symbol, bool enabled) {
